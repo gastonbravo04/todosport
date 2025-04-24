@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'ventas'
+    'carrito',
 ]
 
 MIDDLEWARE = [
@@ -74,9 +74,7 @@ WSGI_APPLICATION = 'django_api.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        DATABASES = {
+DATABASES = { 
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'todosport',      # La que vas a usar en DBeaver
@@ -89,10 +87,6 @@ DATABASES = {
         },
     }
 }
-
-    }
-}
-    
 
 
 # Password validation
