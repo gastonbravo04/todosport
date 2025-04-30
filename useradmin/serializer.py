@@ -1,29 +1,44 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
+from .models import Customer
 
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'address', 'phone']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'address', 'phone']
 
 
-class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True)
+class RegisterUserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'password2', 'first_name', 'last_name', 'address', 'phone']
-
-    def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"password": "Las contraseñas no coinciden."})
-        return attrs
+        fields = ['username', 'password', 'first_name', 'last_name', 'email', 'address', 'phone']
 
     def create(self, validated_data):
-        validated_data.pop('password2')
         user = User.objects.create_user(**validated_data)
         return user
+
+
+class CustomerSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+
+    class Meta:
+        model = Customer
+        fields = ['id', 'user']
+
+
+class RegisterCustomerSerializer(serializers.ModelSerializer):
+    user = RegisterUserSerializer()
+
+    class Meta:
+        model = Customer
+        fields = ['user']
+
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        user = User.objects.create_user(**user_data)
+        customer = Customer.objects.create(user=user)
+        return customer
