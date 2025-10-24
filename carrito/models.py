@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.hashers import make_password, check_password
 
 class User(models.Model):
     User_id = models.AutoField(primary_key=True)
@@ -8,6 +9,20 @@ class User(models.Model):
     username = models.CharField(max_length=100, unique=True)
     address = models.CharField(max_length=200)
     phone = models.CharField(max_length=20)
+    # AÑADIDO: Campo password para autenticación en tests
+    password = models.CharField(max_length=128, default='!default_hash') 
+
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.password)
+
+    def save(self, *args, **kwargs):
+        # Hashea la password antes de guardar si no está hasheada
+        if not self.password.startswith('pbkdf2_'):
+            self.set_password(self.password)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -43,6 +58,20 @@ class Customer(models.Model):
     username = models.CharField(max_length=100, unique=True)
     address = models.CharField(max_length=200)
     phone = models.CharField(max_length=20)
+    # AÑADIDO: Campo password para autenticación en tests
+    password = models.CharField(max_length=128, default='!default_hash') 
+
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.password)
+    
+    def save(self, *args, **kwargs):
+        # Hashea la password antes de guardar si no está hasheada
+        if not self.password.startswith('pbkdf2_'):
+            self.set_password(self.password)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -69,6 +98,3 @@ class Cart(models.Model):
 
     def __str__(self):
         return f"Cart #{self.cart_id}"
-
-
-# Create your models here.

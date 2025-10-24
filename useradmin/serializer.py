@@ -20,7 +20,13 @@ class RegisterUserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
         return user
-
+        
+    # CORRECCIÓN CLAVE: Añadir validación de unicidad de email
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            # Devuelve 400 Bad Request con un mensaje específico
+            raise serializers.ValidationError("Este email ya está registrado.")
+        return value
 
 class CustomerSerializer(serializers.ModelSerializer):
     user = UserSerializer()
