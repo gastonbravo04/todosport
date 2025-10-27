@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'carrito',
     'rest_framework',
     'useradmin',
+    'django_api',
 
 ]
 

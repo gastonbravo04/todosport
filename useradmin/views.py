@@ -1,5 +1,5 @@
 from django.contrib.auth import authenticate, login, logout
-from rest_framework import generics, views, status
+from rest_framework import generics, views, status, permissions
 from rest_framework.response import Response
 from .models import Customer
 from .serializer import (
@@ -24,7 +24,8 @@ class RegisterCustomerView(generics.CreateAPIView):
 # Ver el perfil del usuario autenticado
 class UserProfileView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
-
+    
+    permission_classes = [permissions.IsAuthenticated]
     def get_object(self):
         return self.request.user
 
