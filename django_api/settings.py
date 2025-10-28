@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -41,18 +43,25 @@ INSTALLED_APPS = [
     'rest_framework',
     'useradmin',
     'django_api',
-
+    'rest_framework_simplejwt',
 ]
 
 AUTH_USER_MODEL = 'useradmin.User'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
-    # 'DEFAULT_PERMISSION_CLASSES': [
-    #     'rest_framework.permissions.IsAuthenticated',
-    # ],
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),  # Token de acceso (para las peticiones)
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # Token de refresco (para obtener nuevos tokens)
+    'ROTATE_REFRESH_TOKENS': True, # Rotar token de refresco por seguridad
+    'AUTH_HEADER_TYPES': ('Bearer',), # Formato del header: Authorization: Bearer <token>
 }
 
 MIDDLEWARE = [
