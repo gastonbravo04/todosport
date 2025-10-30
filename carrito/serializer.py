@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Supplier, Product, Customer, Order, Cart
+from .models import User, Supplier, Product, Customer, Order, OrderItem, Cart
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,12 +27,23 @@ class OrderSerializer(serializers.ModelSerializer):
     # Hacemos total y status opcionales para que la vista pueda asignarlos.
     total = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     status = serializers.CharField(max_length=100, required=False)
+    shipping = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    payment_method = serializers.CharField(max_length=50, required=False)
+    card_type = serializers.CharField(max_length=20, required=False, allow_null=True, allow_blank=True)
+    card_brand = serializers.CharField(max_length=20, required=False, allow_null=True, allow_blank=True)
+    installments = serializers.IntegerField(required=False)
     
     # El campo customer se hace read_only ya que la vista lo asigna desde el usuario autenticado.
     customer = serializers.PrimaryKeyRelatedField(read_only=True) 
     
     class Meta:
         model = Order
+        fields = '__all__'
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderItem
         fields = '__all__'
 
 class CartSerializer(serializers.ModelSerializer):

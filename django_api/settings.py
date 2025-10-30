@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-n--j@56e_to4ys5ywhtsffuw2f4#ei*3lnv13sw#fm75f$iyto
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -41,9 +41,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'carrito',
     'rest_framework',
-    'useradmin',
+    'useradmin.apps.UseradminConfig',  # asegurar que use AppConfig
     'django_api',
     'rest_framework_simplejwt',
+    'corsheaders',
 ]
 
 AUTH_USER_MODEL = 'useradmin.User'
@@ -65,9 +66,10 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',           # <- PRIMERO
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
+    'django.middleware.common.CommonMiddleware',       # <- siempre debajo de CorsMiddleware
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -157,4 +159,16 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = []
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+]
+
+# Si tu Django es 4.x y usás cookies en algún endpoint, agrega:
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+]
+
+# Para depurar, podés habilitar temporalmente:
+# CORS_ALLOW_ALL_ORIGINS = True

@@ -46,6 +46,8 @@ class Product(models.Model):
     stock = models.IntegerField()
     category = models.CharField(max_length=100)
     brand = models.CharField(max_length=100)
+    # URL de la imagen del producto (opcional)
+    image = models.URLField(max_length=500, blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -83,9 +85,27 @@ class Order(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     total = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=100)
+    # Nuevos campos para completar el modelo de checkout
+    shipping = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    payment_method = models.CharField(max_length=50, default='')
+    card_type = models.CharField(max_length=20, blank=True, null=True)
+    card_brand = models.CharField(max_length=20, blank=True, null=True)
+    installments = models.IntegerField(default=1)
 
     def __str__(self):
         return f"Order #{self.order_id}"
+
+
+class OrderItem(models.Model):
+    """Detalle de productos por orden."""
+    order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    quantity = models.IntegerField()
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"Item #{self.pk} - Orden {self.order_id if self.order_id else ''}"
 
 
 class Cart(models.Model):

@@ -10,7 +10,7 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'address', 'phone']
+        fields = ['id','username','first_name','last_name','email','address','phone','is_staff']
 
 
 # --- 2. RegisterUserSerializer (Crea el Usuario Hasheado) ---
@@ -21,6 +21,13 @@ class RegisterUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'password', 'first_name', 'last_name', 'email', 'address', 'phone']
+        extra_kwargs = {
+            'first_name': {'required': False, 'allow_blank': True},
+            'last_name': {'required': False, 'allow_blank': True},
+            'email': {'required': False, 'allow_blank': True},
+            'address': {'required': False, 'allow_blank': True},
+            'phone': {'required': False, 'allow_blank': True},
+        }
 
     # Lógica de Creación: Usa User.objects.create_user para hashear la contraseña
     def create(self, validated_data):
@@ -36,7 +43,8 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         
     # Lógica de Validación: Verifica la unicidad del email
     def validate_email(self, value):
-        # La validación de formato ya está implícita en Django, aquí verificamos unicidad
+        if not value:
+            return value
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Este email ya está registrado.")
         return value
@@ -74,3 +82,7 @@ class RegisterCustomerSerializer(serializers.ModelSerializer):
         # 2. Crea el Customer y lo asocia al User
         customer = Customer.objects.create(user=user, **validated_data)
         return customer
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True, min_length=4)
