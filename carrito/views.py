@@ -1,21 +1,13 @@
 from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response 
-from .models import User, Supplier, Product, Customer, Order, OrderItem, Cart
-from .serializer import UserSerializer, SupplierSerializer, ProductSerializer, CustomerSerializer, OrderSerializer, OrderItemSerializer, CartSerializer
+from .models import Product, Customer, Order, OrderItem
+from .serializer import ProductSerializer, CustomerSerializer, OrderSerializer, OrderItemSerializer
 from rest_framework.viewsets import ModelViewSet
 from .permissions import IsStaffOrReadOnly
 import time
 
 # Nota: Asumo que todos los modelos están en .models
-
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-
-class SupplierViewSet(viewsets.ModelViewSet):
-    queryset = Supplier.objects.all()
-    serializer_class = SupplierSerializer
 
 class ProductViewSet(ModelViewSet):
     # El modelo define `product_id` como primary key — no existe `id`.
@@ -163,11 +155,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         if not self.request.data.get('total'):
             order.total = round(computed_total + shipping, 2)
             order.save(update_fields=['total'])
-
-class CartViewSet(viewsets.ModelViewSet):
-    queryset = Cart.objects.all()
-    serializer_class = CartSerializer
-
 
 class OrderItemViewSet(viewsets.ModelViewSet):
     queryset = OrderItem.objects.all()

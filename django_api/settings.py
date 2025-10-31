@@ -172,3 +172,12 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Para depurar, podés habilitar temporalmente:
 # CORS_ALLOW_ALL_ORIGINS = True
+
+# settings.py (Añadir o modificar al final del archivo)
+
+# 26214400 bytes = 25 MB
+# Aumenta el límite de memoria para datos POST:
+DATA_UPLOAD_MAX_MEMORY_SIZE = 26214400 
+
+# Aumenta el límite del tamaño máximo de archivos subidos (necesario para POST/PUT)
+FILE_UPLOAD_MAX_MEMORY_SIZE = 26214400
