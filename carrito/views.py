@@ -1,8 +1,9 @@
 from django.shortcuts import render, get_object_or_404
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.response import Response 
-from .models import Product, Customer, Order, OrderItem
-from .serializer import ProductSerializer, CustomerSerializer, OrderSerializer, OrderItemSerializer
+from .models import Product, Customer, Order, OrderItem, Cart
+from django.db import transaction
+from .serializer import ProductSerializer, CustomerSerializer, OrderSerializer, OrderItemSerializer, CartSerializer
 from rest_framework.viewsets import ModelViewSet
 from .permissions import IsStaffOrReadOnly
 import time
@@ -59,11 +60,15 @@ class OrderViewSet(viewsets.ModelViewSet):
     # LÓGICA DE CHECKOUT: Asigna cliente y campos obligatorios (Resuelve el 400 != 201)
     def perform_create(self, serializer):
         """
-        Crea una orden asignando el cliente autenticado si existe.
-        Si no hay usuario autenticado, crea/usa un "cliente invitado" a partir de los datos enviados.
-        Usa los valores de total/status que envíe el frontend; si faltan, aplica defaults.
+        Checkout flow:
+        - Asigna el Customer autenticado (buscando por username en self.request.user).
+        - Crea la Order con total=0.00 y status='Pending'.
+        - Mueve/vincula todos los ítems del `Cart` a `OrderItem` (no vuelve a tocar stock,
+        ya que el descuento de stock ocurre al crear los `Cart` items en `CartSerializer`).
+        - Vacía el carrito del usuario (aquí se borran los registros de `Cart`).
+        Todo dentro de una transacción atómica.
         """
-        # 1) Intentar resolver un Customer según el usuario autenticado
+        # Resolver customer por username del request.user
         customer_obj = None
         username = getattr(self.request.user, 'username', '') or ''
         if username:
@@ -72,20 +77,17 @@ class OrderViewSet(viewsets.ModelViewSet):
             except Customer.DoesNotExist:
                 customer_obj = None
 
-        # 2) Si no hay Customer autenticado, crear/usar uno temporal a partir del payload
+        # Si no existe un Customer autenticado, creamos/obtenemos un cliente "guest"
         if customer_obj is None:
             data = self.request.data if hasattr(self.request, 'data') else {}
             base_username = data.get('username') or f"guest_{int(time.time())}"
-            # Aseguramos unicidad en username/email mínimos
-            safe_username = f"{base_username}"
-            # Email opcional: si no viene, generamos uno sintético único
+            safe_username = base_username
             email = data.get('email') or f"{safe_username}@guest.local"
             first_name = data.get('first_name') or data.get('firstName') or 'Invitado'
             last_name = data.get('last_name') or data.get('lastName') or ''
             address = data.get('address') or ''
             phone = data.get('phone') or ''
 
-            # get_or_create para evitar romper unicidades si se reintenta
             customer_obj, _ = Customer.objects.get_or_create(
                 username=safe_username,
                 defaults={
@@ -94,68 +96,117 @@ class OrderViewSet(viewsets.ModelViewSet):
                     'email': email,
                     'address': address,
                     'phone': phone,
-                    # la password no es utilizada para invitados, se setea por defecto en modelo
                 }
             )
 
-        # 3) Tomar total/status del payload si se pasan; sino defaults
-        req_total = self.request.data.get('total', 0.00)
+        # Crear la orden base con los valores requeridos por la especificación
+        with transaction.atomic():
+            order = serializer.save(
+                customer=customer_obj,
+                total=0.00,
+                status='Pending',
+            )
+
+            # Obtener los items del carrito (nota: el modelo Cart no tiene relación con Customer
+            # en este proyecto, así que se toman todos los items del carrito existentes). Si no hay
+            # items en la tabla Cart (por ejemplo cuando el frontend usa localStorage), procesamos
+            # los items enviados en request.data y allí descontamos stock.
+            cart_items = Cart.objects.all()
+
+            computed_total = 0.0
+            total_shipping = 0.0
+
+            if cart_items.exists():
+                for c in cart_items:
+                    try:
+                        OrderItem.objects.create(
+                            order=order,
+                            product=c.product,
+                            quantity=c.quantity,
+                            unit_price=c.unit_price,
+                            subtotal=c.total,
+                        )
+                        computed_total += float(c.total)
+                        total_shipping += float(c.shipping or 0)
+                    except Exception:
+                        # Omitir ítems inválidos sin romper la creación de la orden
+                        continue
+
+                # Actualizar total (productos + envío) si corresponde
+                order.total = round(computed_total + total_shipping, 2)
+                order.save(update_fields=['total'])
+
+                # Vaciar el carrito
+                cart_items.delete()
+            else:
+                # No hay items en la tabla Cart: tomamos items desde el payload y descontamos stock aquí.
+                items = self.request.data.get('items') or []
+                for it in items:
+                    try:
+                        product_id = it.get('product_id') or it.get('product')
+                        if product_id is None:
+                            continue
+                        product = Product.objects.get(product_id=product_id)
+                        qty = int(it.get('quantity', 1))
+
+                        # Validar stock
+                        if product.stock < qty:
+                            raise serializers.ValidationError(
+                                f"No hay stock suficiente para {product.name}. Disponible: {product.stock}, solicitado: {qty}"
+                            )
+
+                        # Descontar stock ahora (no existe Cart que ya lo haya hecho)
+                        product.stock -= qty
+                        product.save()
+
+                        unit_price = float(it.get('unit_price', product.price))
+                        subtotal = unit_price * qty
+
+                        OrderItem.objects.create(
+                            order=order,
+                            product=product,
+                            quantity=qty,
+                            unit_price=unit_price,
+                            subtotal=subtotal,
+                        )
+                        computed_total += subtotal
+                    except serializers.ValidationError:
+                        # Re-raise para que create() lo capture y devuelva detail al frontend
+                        raise
+                    except Exception:
+                        # Omitimos ítems inválidos pero continuamos con el resto
+                        continue
+
+                # Guardar total calculado
+                order.total = round(computed_total + total_shipping, 2)
+                order.save(update_fields=['total'])
+
+    def create(self, request, *args, **kwargs):
+        """Override create to return a JSON error message when something fails
+        (helps the frontend show a useful alert instead of a generic failure).
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         try:
-            req_total = float(req_total)
-        except Exception:
-            req_total = 0.00
-        req_status = self.request.data.get('status', 'Pending')
-        shipping = self.request.data.get('shipping', 0.00)
-        try:
-            shipping = float(shipping)
-        except Exception:
-            shipping = 0.00
-        payment_method = self.request.data.get('payment_method', '')
-        card_type = self.request.data.get('card_type')
-        card_brand = self.request.data.get('card_brand')
-        installments = int(self.request.data.get('installments', 1) or 1)
+            self.perform_create(serializer)
+        except Exception as e:
+            # Log traceback to console (runserver) and return readable message
+            import traceback
+            traceback.print_exc()
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Guardar la orden base
-        order = serializer.save(
-            customer=customer_obj,
-            total=req_total,
-            status=req_status,
-            shipping=shipping,
-            payment_method=payment_method,
-            card_type=card_type,
-            card_brand=card_brand,
-            installments=installments,
-        )
-
-        # Crear ítems si fueron provistos
-        items = self.request.data.get('items') or []
-        computed_total = 0.0
-        for it in items:
-            try:
-                product_id = it.get('product_id') or it.get('product')
-                if product_id is None:
-                    continue
-                product = Product.objects.get(product_id=product_id)
-                qty = int(it.get('quantity', 1))
-                unit_price = float(it.get('unit_price', product.price))
-                subtotal = unit_price * qty
-                OrderItem.objects.create(
-                    order=order,
-                    product=product,
-                    quantity=qty,
-                    unit_price=unit_price,
-                    subtotal=subtotal,
-                )
-                computed_total += subtotal
-            except Exception:
-                # Omitimos ítems inválidos sin romper el flujo
-                continue
-
-        # Si no enviaron total, recalculamos (productos + envío)
-        if not self.request.data.get('total'):
-            order.total = round(computed_total + shipping, 2)
-            order.save(update_fields=['total'])
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 class OrderItemViewSet(viewsets.ModelViewSet):
     queryset = OrderItem.objects.all()
     serializer_class = OrderItemSerializer
+
+
+class CartViewSet(viewsets.ModelViewSet):
+    """API para CRUD de items de carrito. Al crear un Cart item, el CartSerializer
+    ya se encarga de descontar el stock del producto.
+    """
+    queryset = Cart.objects.all().order_by('cart_id')
+    serializer_class = CartSerializer
+    permission_classes = [permissions.AllowAny]
