@@ -21,6 +21,14 @@ class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = '__all__'
+class OrderItemSerializer(serializers.ModelSerializer):
+    # Serializamos el producto embebido para que el frontend pueda mostrar nombre/imagen
+    product = ProductSerializer(read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = '__all__'
+
 
 class OrderSerializer(serializers.ModelSerializer):
     # CORRECCIÓN CLAVE para el checkout (soluciona el 400):
@@ -34,17 +42,15 @@ class OrderSerializer(serializers.ModelSerializer):
     installments = serializers.IntegerField(required=False)
     
     # El campo customer se hace read_only ya que la vista lo asigna desde el usuario autenticado.
-    customer = serializers.PrimaryKeyRelatedField(read_only=True) 
+    # Serializamos customer completo para que el frontend reciba todos sus datos
+    customer = CustomerSerializer(read_only=True)
+    # Incluir ítems de la orden embebidos para que el frontend muestre detalle
+    items = OrderItemSerializer(many=True, read_only=True)
     
     class Meta:
         model = Order
         fields = '__all__'
 
-
-class OrderItemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = OrderItem
-        fields = '__all__'
 
 class CartSerializer(serializers.ModelSerializer):
     class Meta:

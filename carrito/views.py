@@ -99,12 +99,17 @@ class OrderViewSet(viewsets.ModelViewSet):
                 }
             )
 
+        # Forzamos que toda orden creada vía checkout se registre como 'Paid'.
+        # Si en el futuro se integra un gateway de pagos, cambiar esta lógica
+        # para validar el pago antes de marcar la orden como pagada.
+        initial_status = 'Pagado'
+
         # Crear la orden base con los valores requeridos por la especificación
         with transaction.atomic():
             order = serializer.save(
                 customer=customer_obj,
                 total=0.00,
-                status='Pending',
+                status=initial_status,
             )
 
             # Obtener los items del carrito (nota: el modelo Cart no tiene relación con Customer
@@ -194,9 +199,15 @@ class OrderViewSet(viewsets.ModelViewSet):
             import traceback
             traceback.print_exc()
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        # Re-serializar la orden recién creada para incluir campos relacionados
+        try:
+            created_order = Order.objects.get(pk=serializer.instance.pk)
+            out_data = OrderSerializer(created_order, context={'request': request}).data
+        except Exception:
+            out_data = serializer.data
 
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        headers = self.get_success_headers(out_data)
+        return Response(out_data, status=status.HTTP_201_CREATED, headers=headers)
 
 class OrderItemViewSet(viewsets.ModelViewSet):
     queryset = OrderItem.objects.all()
