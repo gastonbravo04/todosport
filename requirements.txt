@@ -19,3 +19,4 @@ tzdata==2025.2
 djangorestframework
 djangorestframework-simplejwt
 cryptography
+django-cors-headers
