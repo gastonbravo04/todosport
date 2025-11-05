@@ -103,19 +103,50 @@ WSGI_APPLICATION = 'django_api.wsgi.application'
 import pymysql
 pymysql.install_as_MySQLdb()
 
-DATABASES = { 
+# --- COMIENZA LA MODIFICACIÓN: soporta entorno Railway (producción) y local (desarrollo) ---
+# Detectar si estamos en un entorno de Railway (u otro PaaS) mediante una variable de entorno
+IS_RAILWAY_ENV = os.environ.get('RAILWAY_ENVIRONMENT') is not None or os.environ.get('RAILWAY_DATABASE_URL') is not None
+
+if IS_RAILWAY_ENV:
+    # 🚨 CONFIGURACIÓN DE PRODUCCIÓN (Railway / MySQL)
+    # Railway (u otros PaaS) normalmente inyecta credenciales en variables de entorno.
+    # Asegurate en Railway de definir: MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST, MYSQL_PORT
+    DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'todosport',      # La que vas a usar en DBeaver
-        'USER': 'root',                   
-        'PASSWORD': '1234',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        # SOLO BUSCA las variables estándar de MySQL
+        'NAME': os.environ.get('MYSQL_DATABASE'), 
+        'USER': os.environ.get('MYSQL_USER'),      
+        'PASSWORD': os.environ.get('MYSQL_PASSWORD'), 
+        'HOST': os.environ.get('MYSQL_HOST'),      
+        'PORT': os.environ.get('MYSQL_PORT', '3306'), # Si no lo encuentra, usa 3306
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
     }
 }
+    # Recomendación de seguridad en producción
+    DEBUG = False
+    ALLOWED_HOSTS = ['*']
+else:
+    # 💻 CONFIGURACIÓN DE DESARROLLO (Localhost)
+    DATABASES = { 
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'todosport', 
+            'USER': 'root', 
+            'PASSWORD': '1234',
+            'HOST': 'localhost',
+            'PORT': '3306',
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        }
+    }
+    DEBUG = True
+    ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+
+# --- FIN DE LA MODIFICACIÓN ---
 
 
 # Password validation
