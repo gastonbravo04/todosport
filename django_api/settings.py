@@ -193,6 +193,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
+    "https://melodious-blini-1a4311.netlify.app",
 ]
 
 # Si tu Django es 4.x y usás cookies en algún endpoint, agrega:
