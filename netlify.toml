@@ -1,0 +1,13 @@
+# Netlify configuration: set the base directory to the frontend so Netlify
+# runs install/build in the React app folder (todosport-frontend).
+[build]
+  base = "todosport-frontend"
+  publish = "build"
+  command = "npm run build"
+
+# Optional: provide the production API URL used at build time. It's safer
+# to set these in the Netlify UI (Site settings > Build & deploy > Environment),
+# but they are convenient here for quick testing. Remove them if you prefer UI.
+[context.production.environment]
+  REACT_APP_API_BASE_URL = "https://todosport-production.up.railway.app/api"
+  REACT_APP_API_URL = "https://todosport-production.up.railway.app"
