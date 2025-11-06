@@ -57,7 +57,6 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',        # <- siempre debajo de CorsMiddleware
-    # 🛠️ MANTENEMOS ESTA LÍNEA, PERO EL ENDPOINT DE TOKEN ESTÁ EXENTO EN URLS.PY
     'django.middleware.csrf.CsrfViewMiddleware', 
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -183,15 +182,17 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 # -----------------------------------------------------------
 
-CORS_ALLOW_ALL_ORIGINS = False # Debe estar en False para usar la lista segura
-
+CORS_ALLOW_ALL_ORIGINS = False # Se recomienda no usar True en producción
 CORS_ALLOWED_ORIGINS: list[str] = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'https://melodious-blini-1a4311.netlify.app',
 ]
+
+# 🛠️ FORZAR SEGURIDAD HTTPS Y CSRF
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = True # Esto fuerza HTTPS, aunque Railway lo maneja
 
 # Si tu Django es 4.x y usás cookies en algún endpoint, agrega:
 CSRF_TRUSTED_ORIGINS: list[str] = [
