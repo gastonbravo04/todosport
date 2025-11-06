@@ -197,9 +197,10 @@ CORS_ALLOWED_ORIGINS: list[str] = [
 ]
 
 # Si tu Django es 4.x y usás cookies en algún endpoint, agrega:
-CSRF_TRUSTED_ORIGINS = [
+CSRF_TRUSTED_ORIGINS: list[str] = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
+    "https://melodious-blini-1a4311.netlify.app",
 ]
 
 # Para depurar, podés habilitar temporalmente:
