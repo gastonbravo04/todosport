@@ -9,5 +9,5 @@
 # to set these in the Netlify UI (Site settings > Build & deploy > Environment),
 # but they are convenient here for quick testing. Remove them if you prefer UI.
 [context.production.environment]
-  REACT_APP_API_BASE_URL = "https://todosport-production.up.railway.app/api"
+  const API_BASE = 'https://todosport-production.up.railway.app/api';  
   REACT_APP_API_URL = "https://todosport-production.up.railway.app"

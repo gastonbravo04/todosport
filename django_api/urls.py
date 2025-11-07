@@ -11,7 +11,6 @@ from django.views.decorators.csrf import csrf_exempt
 # Esto le dice a Django: No verifiques el token CSRF para esta vista POST.
 TokenObtainPairViewExempt = csrf_exempt(TokenObtainPairView.as_view())
 
-
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('carrito.urls')), 
