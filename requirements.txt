@@ -21,3 +21,4 @@ djangorestframework-simplejwt
 cryptography
 django-cors-headers
 gunicorn
+drf-yasg
