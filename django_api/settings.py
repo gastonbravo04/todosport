@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'carrito',
     'rest_framework',
+    'drf_yasg',
     'useradmin.apps.UseradminConfig',    # asegurar que use AppConfig
     'django_api',
     'rest_framework_simplejwt',
@@ -187,6 +188,7 @@ CORS_ALLOWED_ORIGINS: list[str] = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'https://todosportgaston.netlify.app',
+    'https://todosport-gaston.netlify.app',
 ]
 
 # 🛠️ FORZAR SEGURIDAD HTTPS Y CSRF
@@ -199,6 +201,7 @@ CSRF_TRUSTED_ORIGINS: list[str] = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'https://todosportgaston.netlify.app',
+    'https://todosport-gaston.netlify.app',
 ]
 
 # Para depurar, podés habilitar temporalmente:
@@ -212,3 +215,15 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 26214400
 
 # Aumenta el límite del tamaño máximo de archivos subidos (necesario para POST/PUT)
 FILE_UPLOAD_MAX_MEMORY_SIZE = 26214400
+
+SWAGGER_SETTINGS = {
+    'USE_SESSION_AUTH': False,
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'in': 'header',
+            'name': 'Authorization',
+            'description': 'JWT Authorization header using the Bearer scheme. Example: "Bearer <token>"',
+        }
+    },
+}
